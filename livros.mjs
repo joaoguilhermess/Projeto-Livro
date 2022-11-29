@@ -140,7 +140,7 @@ async function getImage(id, n) {
 			r += "\x1b[31m" + n + ".jpg" + "\x1b[0m" + " ";
 			r += "\x1b[32m" + f.status + "\x1b[0m";
 
-			while (r.length - 54 < process.stdout.columns) {
+			while (r.length - 50 < process.stdout.columns) {
 				r += " ";
 			}
 
