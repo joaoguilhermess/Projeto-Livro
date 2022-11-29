@@ -43,9 +43,7 @@ async function getLivros() {
 	var k = 0;
 
 	while (true) {
-		// console.log("1 iteration");
 		while (true) {
-			// console.log("2 iteration");
 			try {
 				var f = await fetch("https://digital-content-bff.sasdigital.com.br/v1/materials?pageNumber=" + k, {
 					"headers": {
@@ -56,7 +54,7 @@ async function getLivros() {
 				});
 				var json = await f.json();
 				break;
-			} catch (e) {console.error(e)}
+			} catch (e) {/*console.error(e);*/}
 		}
 
 		if (k == json.totalPage) {
@@ -75,7 +73,6 @@ async function getLivros() {
 
 async function Topics(id, livro) {
 	while (true) {
-		// console.log("3 iteration");
 		try {
 			var f = await fetch("https://digital-content-bff.sasdigital.com.br/v1/materials/" + id + "?includeNotVisibleContents=true", {
 				"headers": {
@@ -87,7 +84,7 @@ async function Topics(id, livro) {
 			var json = await f.json();
 	
 			break;
-		} catch (e) {console.error(e)}
+		} catch (e) {/*console.error(e);*/}
 	}
 
 	for (var i = 0; i < json.topics.length; i++) {
@@ -95,12 +92,6 @@ async function Topics(id, livro) {
 
 		for (var l = 0; l < contents.length; l++) {
 			if (contents[l].description.split(" ")[0] == "PDF") {
-				// console.log(contents[l]);
-
-				// setTimeout(function(a, b, c) {
-				// 	InitPDF(a, b, c);
-				// }, i * l * 2500, contents[l].productId, livro, contents[l].name);
-				
 				await InitPDF (contents[l].productId, livro, contents[l].name);
 			}
 		}
@@ -113,11 +104,9 @@ async function InitPDF(id, livro, name) {
 	var i = 0;
 
 	while (true) {
-		// console.log("3 iteration");
 		i += 1;
 
 		var img = await getImage(id, i);
-		console.log(il, elapsed(), id , i + ".jpg", img.status);
 
 		if (img.status == 500) {
 			break;
@@ -134,7 +123,6 @@ async function InitPDF(id, livro, name) {
 
 async function getImage(id, n) {
 	while (true) {
-		// console.log("3 iteration");
 		try {
 			var f = await fetch("https://pageflip.portalsas.com.br/" + id + "/files/large/" + n + ".jpg", {
 				"headers": {
@@ -145,8 +133,21 @@ async function getImage(id, n) {
 			});
 			var buffer = await f.arrayBuffer();
 
+			var r = "\r";
+			r += "\x1b[33m" + il + "\x1b[0m" + " ";
+			r += "\x1b[30m\x1b[1m" + elapsed() + "\x1b[0m" + " ";
+			r += "\x1b[30m\x1b[1m" + id + "\x1b[0m" + " ";
+			r += "\x1b[31m" + n + ".jpg" + "\x1b[0m" + " ";
+			r += "\x1b[32m" + f.status + "\x1b[0m";
+
+			while (r.length - 54 < process.stdout.columns) {
+				r += " ";
+			}
+
+			process.stdout.write(r);
+
 			break;
-		} catch (e) {console.error(e)}
+		} catch (e) {/*console.error(e);*/}
 	}
 
 	return {
@@ -172,10 +173,6 @@ async function savePages(pages, livro, name) {
 		for (var i = 0; i < pages.length; i++) {
 			var p = path.join(name, i + ".jpg");
 
-			// console.log(p);
-
-			// console.log("get:", il, elapsed(), p, pages[i].byteLength);
-
 			if (fs.existsSync(p)) {
 				var stat = fs.statSync(p);
 
@@ -185,10 +182,8 @@ async function savePages(pages, livro, name) {
 			} else {
 				fs.writeFileSync(p, Buffer.from(pages[i]));
 			}
-
-			// console.log("save:", il, elapsed(), p, pages[i].byteLength);
 		}
-	} catch (e) {console.error(e);}
+	} catch (e) {/*console.error(e);*/}
 }
 
 function format(str, len=2) {
