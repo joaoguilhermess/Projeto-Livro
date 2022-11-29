@@ -135,7 +135,7 @@ async function getImage(id, n) {
 
 			var r = "\r";
 			r += "\x1b[33m" + il + "\x1b[0m" + " ";
-			r += "\x1b[30m\x1b[1m" + elapsed() + "\x1b[0m" + " ";
+			r += "\x1b[37m\x1b[1m" + elapsed() + "\x1b[0m" + " ";
 			r += "\x1b[30m\x1b[1m" + id + "\x1b[0m" + " ";
 			r += "\x1b[31m" + n + ".jpg" + "\x1b[0m" + " ";
 			r += "\x1b[32m" + f.status + "\x1b[0m";
