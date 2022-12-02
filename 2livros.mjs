@@ -56,7 +56,7 @@ class Util {
 		console.log(r);
 	}
 
-	static async Write(pages, p, image) {
+	static async Write(p, image) {
 		image = await image.arrayBuffer();
 
 		image = Buffer.from(image);
@@ -144,43 +144,24 @@ class ProjetoLivro {
 		return list;
 	}
 
-	async getImages(topicId, p) {
-		var list = [];
+	async getImage(topicId, index) {
+		var f = await fetchSafe("https://pageflip.portalsas.com.br/" + topicId + "/files/large/" + index + ".jpg", {
+			"headers": {
+				"accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+				"cookie": "_hjSessionUser_1632105=eyJpZCI6ImZmMjkwYzFlLWM3NGEtNTk5Zi04MzcyLTg3OGZjOTEwZGE2NCIsImNyZWF0ZWQiOjE2NjMwMzIzMjI2MDQsImV4aXN0aW5nIjp0cnVlfQ==; _hjSessionUser_1651126=eyJpZCI6IjUzZGRhNDNkLWJiYjQtNWUyMy1hYWQ5LTllYTRkMzI2NWUyMyIsImNyZWF0ZWQiOjE2NjMyODM2NzI1MTUsImV4aXN0aW5nIjp0cnVlfQ==; _gid=GA1.3.1881415274.1670011367; _hjSession_1632105=eyJpZCI6ImU2Y2QwMTVjLTUyMGEtNGU0Zi04ZDk4LWNmNzMxNDM1NzY3ZSIsImNyZWF0ZWQiOjE2NzAwMTEzNjc5MjEsImluU2FtcGxlIjpmYWxzZX0=; token=" + this.authEncoded + "; strategy=token; session=IRna1w67UbJzXfvx-zE1oOhrvfUcAcCm; refreshToken=O0Z2Cc9cUOehtbnqO2gf2lGOJhvlsO1rUc-SMWASaoGrMtd-E5PWRh5sg-vY6BDouPftZOv1Ia04q5dzqxlYhKyHtqRO_5gvTVNHCKm7d36ex6fNaZVisKVU0YfihIKzXNvxYo-wm4ojKFX8xaMkSxbbMZIw82OsdV71Wx6HEMA; _ga=GA1.3.310238777.1663032322; _ga_4ZXGB89LRC=GS1.1.1670011367.13.1.1670011384.0.0.0"
+			},
+			"method": "GET"
+		});
 
-		var index = 1;
-
-		while (true) {
-			var f = await fetchSafe("https://pageflip.portalsas.com.br/" + topicId + "/files/large/" + index + ".jpg", {
-				"headers": {
-					"accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-					"cookie": "_hjSessionUser_1632105=eyJpZCI6ImZmMjkwYzFlLWM3NGEtNTk5Zi04MzcyLTg3OGZjOTEwZGE2NCIsImNyZWF0ZWQiOjE2NjMwMzIzMjI2MDQsImV4aXN0aW5nIjp0cnVlfQ==; _hjSessionUser_1651126=eyJpZCI6IjUzZGRhNDNkLWJiYjQtNWUyMy1hYWQ5LTllYTRkMzI2NWUyMyIsImNyZWF0ZWQiOjE2NjMyODM2NzI1MTUsImV4aXN0aW5nIjp0cnVlfQ==; _gid=GA1.3.1881415274.1670011367; _hjSession_1632105=eyJpZCI6ImU2Y2QwMTVjLTUyMGEtNGU0Zi04ZDk4LWNmNzMxNDM1NzY3ZSIsImNyZWF0ZWQiOjE2NzAwMTEzNjc5MjEsImluU2FtcGxlIjpmYWxzZX0=; token=" + this.authEncoded + "; strategy=token; session=IRna1w67UbJzXfvx-zE1oOhrvfUcAcCm; refreshToken=O0Z2Cc9cUOehtbnqO2gf2lGOJhvlsO1rUc-SMWASaoGrMtd-E5PWRh5sg-vY6BDouPftZOv1Ia04q5dzqxlYhKyHtqRO_5gvTVNHCKm7d36ex6fNaZVisKVU0YfihIKzXNvxYo-wm4ojKFX8xaMkSxbbMZIw82OsdV71Wx6HEMA; _ga=GA1.3.310238777.1663032322; _ga_4ZXGB89LRC=GS1.1.1670011367.13.1.1670011384.0.0.0"
-				},
-				"method": "GET"
-			});
-
-			if (f.status == 500) {
-				break;
-			} else if (f.status == 200) {
-				list.push(f);
-				this.pages++;
-
-				Util.print(this.pages, this.StartTime, path.join(p, index + ".jpg"));
-
-				index++;
-			}
-		}
-
-		return list;
+		return f;
 	}
 }
 
 var projetoLivro = new ProjetoLivro();
 
-var pages = 0;
-
 var current = 0;
 
-var max = 10;
+var max = 5;
 
 async function main() {
 	await projetoLivro.Login(email, password);
@@ -206,26 +187,34 @@ async function main() {
 					fs.mkdirSync(p);
 				}
 
-				var images = await projetoLivro.getImages(topics[b].productId, p);
+				var index = 1;
 
-				for (var c = 0; c < images.length; c++) {
-					pages++;
+				while (true) {
+					try {
+						var image = await projetoLivro.getImage(topics[b].productId, index);
 
-					var f = path.join(p, c + ".jpg");
+						if (image.status == 500) {
+							return resolve();
+						} else if (image.status == 200) {
+							projetoLivro.pages++;
 
-					var length = parseInt(images[c].headers.get("content-length"));
+							var f = path.join(p, index + ".jpg");
 
-					if (fs.existsSync(f)) {
-						if (fs.statSync(f).size != length) {
-							await Util.Write(pages, f, images[c]);
-						} else {
-							// images[c].end();
+							Util.print(projetoLivro.pages, projetoLivro.StartTime, f);
+
+							var length = parseInt(image.headers.get("content-length"));
+
+							if (fs.existsSync(f)) {
+								if (fs.statSync(f).size != length) {
+									await Util.Write(f, image);
+								}
+							} else {
+								await Util.Write(f, image);
+							}
+
+							index++;
 						}
-					} else {
-						await Util.Write(pages, f, images[c]);
-					}
-
-					resolve();
+					} catch(e) {console.log(e)}
 				}
 			}
 			current -= 1;
