@@ -9,7 +9,9 @@ const allow = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789Æ
 
 async function fetchSafe(a, b) {
 	while (true) {
-		return await fetch(a, b);
+		try {
+			return await fetch(a, b);
+		} catch {}
 	}
 }
 
