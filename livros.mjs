@@ -31,132 +31,147 @@ async function main() {
 	var livros = await getLivros();
 
 	for (var i = 0; i < livros.length; i++) {
-		Topics(livros[i].id, livros[i].name);
+		await Topics(livros[i].id, livros[i].name);
 	}
 }
 
 main();
 
 async function getLivros() {
-	var l = [];
+	try {
+		var l = [];
 
-	var k = 0;
+		var k = 0;
 
-	while (true) {
+		while (true) {
+			while (true) {
+				try {
+					var f = await fetch("https://digital-content-bff.sasdigital.com.br/v1/materials?pageNumber=" + k, {
+						"headers": {
+							"accept": "application/json, text/plain, */*",
+							"authorization": auth 
+						},
+						"method": "GET"
+					});
+					var json = await f.json();
+					break;
+				} catch (e) {/*console.error(e);*/}
+			}
+
+			if (k == json.totalPage) {
+				break;
+			}
+
+			for (var i = 0; i < json.list.length; i++) {
+				l.push(json.list[i]);
+			}
+
+			k += 1;
+		}
+
+		return l;
+	} catch (e) {
+		console.log(e + "\n");
+	}
+}
+
+async function Topics(id, livro) {
+	try {
 		while (true) {
 			try {
-				var f = await fetch("https://digital-content-bff.sasdigital.com.br/v1/materials?pageNumber=" + k, {
+				var f = await fetch("https://digital-content-bff.sasdigital.com.br/v1/materials/" + id + "?includeNotVisibleContents=true", {
 					"headers": {
 						"accept": "application/json, text/plain, */*",
-						"authorization": auth 
+						"authorization": auth
 					},
 					"method": "GET"
 				});
 				var json = await f.json();
+		
 				break;
 			} catch (e) {/*console.error(e);*/}
 		}
 
-		if (k == json.totalPage) {
-			break;
-		}
+		for (var i = 0; i < json.topics.length; i++) {
+			var contents = json.topics[i].contents;
 
-		for (var i = 0; i < json.list.length; i++) {
-			l.push(json.list[i]);
-		}
-
-		k += 1;
-	}
-
-	return l;
-}
-
-async function Topics(id, livro) {
-	while (true) {
-		try {
-			var f = await fetch("https://digital-content-bff.sasdigital.com.br/v1/materials/" + id + "?includeNotVisibleContents=true", {
-				"headers": {
-					"accept": "application/json, text/plain, */*",
-					"authorization": auth
-				},
-				"method": "GET"
-			});
-			var json = await f.json();
-	
-			break;
-		} catch (e) {/*console.error(e);*/}
-	}
-
-	for (var i = 0; i < json.topics.length; i++) {
-		var contents = json.topics[i].contents;
-
-		for (var l = 0; l < contents.length; l++) {
-			if (contents[l].description.split(" ")[0] == "PDF") {
-				await InitPDF (contents[l].productId, livro, contents[l].name);
+			for (var l = 0; l < contents.length; l++) {
+				if (contents[l].description.split(" ")[0] == "PDF") {
+					await InitPDF(contents[l].productId, livro, contents[l].name);
+				}
 			}
 		}
+	} catch (e) {
+		console.log(e + "\n");
 	}
 }
 
 async function InitPDF(id, livro, name) {
-	var pages = [];
+	try {
+		var i = 0;
 
-	var i = 0;
+		while (true) {
+			i += 1;
 
-	while (true) {
-		i += 1;
+			var img = await getImage(id, i);
 
-		var img = await getImage(id, i);
+			if (img.status == 500) {
+				break;
+			}
 
-		if (img.status == 500) {
-			break;
+			if (img.status == 200) {
+				await savePage(img, id, i, livro, name);
+				
+				il += 1;
+			}
 		}
 
-		if (img.status == 200) {
-			pages.push(img.buffer);
-			il += 1;
-		}
+	} catch (e) {
+		console.log(e + "\n");
 	}
-
-	savePages(pages, livro, name);
 }
 
 async function getImage(id, n) {
-	while (true) {
-		try {
-			var f = await fetch("https://pageflip.portalsas.com.br/" + id + "/files/large/" + n + ".jpg", {
-				"headers": {
-					"accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-					"cookie": "_gid=GA1.3.1470628385.1669639167; ln_or=d; _hjFirstSeen=1; _hjSession_1632105=eyJpZCI6IjExMTNjNTEzLWQ3MDktNDE3NS04MzRlLWQyMTBhN2EyMTkzOSIsImNyZWF0ZWQiOjE2Njk2MzkxNjgwOTksImluU2FtcGxlIjpmYWxzZX0=; token=" + encodeURIComponent(auth) + "; strategy=token; session=GFL8fGeCM67q7JfJZL95aBIe8RNX6XUu; refreshToken=aLqt956L5cF3zznybzHh8M1AQ6Y9tC7VuASJ2Kz7DoO3d-ghq6cLL1X8gRb9B_FbjTlgoIAR_Jx3dQdwObZ7Ye3KUm6iQiz_aCCI--V3ALsicbQWftq2RO7n4QNKs5wFcYh8hUsFF1BcNUDH1H1bdSqTL3FBtnMFwaWDnKT7WL0; _hjSessionUser_1632105=eyJpZCI6IjNiOTYyMWRmLThjNzEtNTAwMi1hNDA2LWI0OTlkNjEzNmFhNyIsImNyZWF0ZWQiOjE2Njk2MzkxNjgwNjYsImV4aXN0aW5nIjp0cnVlfQ==; _ga=GA1.3.1633265526.1669639167; _gat_UA-151320494-8=1; _ga_4ZXGB89LRC=GS1.1.1669639166.1.1.1669639244.0.0.0"
-				},
-				"method": "GET"
-			});
-			var buffer = await f.arrayBuffer();
+	try {
+		while (true) {
+			try {
+				var f = await fetch("https://pageflip.portalsas.com.br/" + id + "/files/large/" + n + ".jpg", {
+					"headers": {
+						"accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+						"cookie": "_gid=GA1.3.1470628385.1669639167; ln_or=d; _hjFirstSeen=1; _hjSession_1632105=eyJpZCI6IjExMTNjNTEzLWQ3MDktNDE3NS04MzRlLWQyMTBhN2EyMTkzOSIsImNyZWF0ZWQiOjE2Njk2MzkxNjgwOTksImluU2FtcGxlIjpmYWxzZX0=; token=" + encodeURIComponent(auth) + "; strategy=token; session=GFL8fGeCM67q7JfJZL95aBIe8RNX6XUu; refreshToken=aLqt956L5cF3zznybzHh8M1AQ6Y9tC7VuASJ2Kz7DoO3d-ghq6cLL1X8gRb9B_FbjTlgoIAR_Jx3dQdwObZ7Ye3KUm6iQiz_aCCI--V3ALsicbQWftq2RO7n4QNKs5wFcYh8hUsFF1BcNUDH1H1bdSqTL3FBtnMFwaWDnKT7WL0; _hjSessionUser_1632105=eyJpZCI6IjNiOTYyMWRmLThjNzEtNTAwMi1hNDA2LWI0OTlkNjEzNmFhNyIsImNyZWF0ZWQiOjE2Njk2MzkxNjgwNjYsImV4aXN0aW5nIjp0cnVlfQ==; _ga=GA1.3.1633265526.1669639167; _gat_UA-151320494-8=1; _ga_4ZXGB89LRC=GS1.1.1669639166.1.1.1669639244.0.0.0"
+					},
+					"method": "GET"
+				});
 
-			var r = "\r";
-			r += "\x1b[33m" + il + "\x1b[0m" + " ";
-			r += "\x1b[37m\x1b[1m" + elapsed() + "\x1b[0m" + " ";
-			r += "\x1b[30m\x1b[1m" + id + "\x1b[0m" + " ";
-			r += "\x1b[31m" + n + ".jpg" + "\x1b[0m" + " ";
-			r += "\x1b[32m" + f.status + "\x1b[0m";
+				// print(il, id, n, f.status);
 
-			while (r.length - 50 < process.stdout.columns) {
-				r += " ";
-			}
-
-			process.stdout.write(r);
-
-			break;
-		} catch (e) {/*console.error(e);*/}
+				return f;
+			} catch (e) {/*console.error(e);*/}
+		}
+	} catch (e) {
+		console.log(e + "\n");
 	}
-
-	return {
-		"buffer": buffer,
-		"status": f.status
-	};
 }
 
-async function savePages(pages, livro, name) {
+async function print(il, id, n, status) {
+	var r = "\r";
+
+	r += "\x1b[33m" + il + "\x1b[0m" + " ";
+	r += "\x1b[37m\x1b[1m" + elapsed() + "\x1b[0m" + " ";
+	r += "\x1b[30m\x1b[1m" + id + "\x1b[0m" + " ";
+	r += "\x1b[31m" + n + ".jpg" + "\x1b[0m" + " ";
+	r += "\x1b[32m" + status + "\x1b[0m";
+
+	while (r.length - 50 < process.stdout.columns) {
+		r += " ";
+	}
+
+	console.log(r);
+
+	// process.stdout.write(r);
+}
+
+async function savePage(page, id, i, livro, name) {
 	try {
 		livro = formatName(livro);
 		name = formatName(name);
@@ -170,20 +185,47 @@ async function savePages(pages, livro, name) {
 			fs.mkdirSync(name);
 		}
 
-		for (var i = 0; i < pages.length; i++) {
-			var p = path.join(name, i + ".jpg");
+		var p = path.join(name, i + ".jpg");
 
-			if (fs.existsSync(p)) {
-				var stat = fs.statSync(p);
+		fs.writeFileSync(p, page);
+		return;
 
-				if (stat.size != pages[i].byteLength) {
-					fs.writeFileSync(p, Buffer.from(pages[i]));
-				}
-			} else {
-				fs.writeFileSync(p, Buffer.from(pages[i]));
-			}
-		}
-	} catch (e) {/*console.error(e);*/}
+		// return new Promise(function(resolve, reject) {
+		// 	if (!fs.existsSync(p)) {
+		// 		// var stream = fs.createWriteStream(p);
+
+		// 		// console.log("a");
+
+		// 		// stream.on("end", function() {
+		// 		// 	print(il, id, i, page.status);
+		// 		// 	resolve();
+		// 		// });
+
+		// 		// page.body.pipe(stream);
+
+		// 		print(il, id, i, page.status);
+		// 		fs.writeFileSync(p);
+		// 		resolve();
+		// 	} else {
+		// 		print(il, id, i, page.status);
+		// 		resolve();
+		// 	}
+		// });
+
+		// if (fs.existsSync(p)) {
+		// 	// var stat = fs.statSync(p);
+
+		// 	var stream = fs.createWriteStream(p);
+
+		// 	img.body.pipe(stream);
+		// } else {
+		// 	var stream = fs.createWriteStream(p);
+
+		// 	img.body.pipe(stream);
+		// }
+	} catch (e) {
+		console.log(e + "\n");
+	}
 }
 
 function format(str, len=2) {
