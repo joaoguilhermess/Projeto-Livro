@@ -144,6 +144,26 @@ class ProjetoLivro {
 		return list;
 	}
 
+	async iterateImages(productId, callback) {
+		var index = 1;
+
+		while (true) {
+			try {
+				var image = await this.getImage(productId, index);
+
+				if (image.status == 500) {
+					break;
+				} else if (image.status == 200) {
+					this.pages++;
+
+					await callback(image, index);
+
+					index++;
+				}
+			} catch(e) {console.log(e)}
+		}
+	}
+
 	async getImage(topicId, index) {
 		var f = await fetchSafe("https://pageflip.portalsas.com.br/" + topicId + "/files/large/" + index + ".jpg", {
 			"headers": {
@@ -155,13 +175,29 @@ class ProjetoLivro {
 
 		return f;
 	}
+
+	async saveImage(p, image, index) {
+		var f = path.join(p, index + ".jpg");
+
+		Util.print(this.pages, this.StartTime, f);
+
+		var length = parseInt(image.headers.get("content-length"));
+
+		if (fs.existsSync(f)) {
+			if (fs.statSync(f).size != length) {
+				await Util.Write(f, image);
+			}
+		} else {
+			await Util.Write(f, image);
+		}
+	}
 }
 
 var projetoLivro = new ProjetoLivro();
 
 var current = 0;
 
-var max = 5;
+var max = 10;
 
 async function main() {
 	await projetoLivro.Login(email, password);
@@ -169,11 +205,19 @@ async function main() {
 	var livros = await projetoLivro.getLivros();
 
 	for (var a = 0; a < livros.length; a++) {
-		var promise = new Promise(async function(resolve, reject) {
-			current += 1;
-			var topics = await projetoLivro.getTopics(livros[a].id);
-			
-			for (var b = 0; b < topics.length; b++) {
+		var topics = await projetoLivro.getTopics(livros[a].id);
+
+		var release;
+
+		for (var b = 0; b < topics.length; b++) {
+			if (current >= max) {
+				await new Promise(function(resolve, reject) {
+					release = resolve;
+				});
+			}
+
+			var promise = new Promise(async function(resolve, reject) {
+				current += 1;
 				var livro = Util.formatString(livros[a].name);
 				var name = Util.formatString(topics[b].name);
 
@@ -187,41 +231,14 @@ async function main() {
 					fs.mkdirSync(p);
 				}
 
-				var index = 1;
+				await projetoLivro.iterateImages(topics[b].productId, function(image, index) {
+					projetoLivro.saveImage(p, image, index);
+				});
 
-				while (true) {
-					try {
-						var image = await projetoLivro.getImage(topics[b].productId, index);
-
-						if (image.status == 500) {
-							return resolve();
-						} else if (image.status == 200) {
-							projetoLivro.pages++;
-
-							var f = path.join(p, index + ".jpg");
-
-							Util.print(projetoLivro.pages, projetoLivro.StartTime, f);
-
-							var length = parseInt(image.headers.get("content-length"));
-
-							if (fs.existsSync(f)) {
-								if (fs.statSync(f).size != length) {
-									await Util.Write(f, image);
-								}
-							} else {
-								await Util.Write(f, image);
-							}
-
-							index++;
-						}
-					} catch(e) {console.log(e)}
-				}
-			}
-			current -= 1;
-		});
-
-		if (current > max) {
-			await promise;
+				current -= 1;
+				
+				release();
+			});
 		}
 	}
 }
