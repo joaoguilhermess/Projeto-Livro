@@ -10,7 +10,14 @@ const allow = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789Æ
 async function fetchSafe(a, b) {
 	while (true) {
 		try {
-			return await fetch(a, b);
+			var controller = new AbortController();
+			b.signal = controller.signal;
+
+			var f = await fetch(a, b);
+
+			f.controller = controller;
+
+			return f;
 		} catch {}
 	}
 }
@@ -186,6 +193,8 @@ class ProjetoLivro {
 		if (fs.existsSync(f)) {
 			if (fs.statSync(f).size != length) {
 				await Util.Write(f, image);
+			} else {
+				image.controller.abort();
 			}
 		} else {
 			await Util.Write(f, image);
