@@ -1,5 +1,5 @@
 email:
-	livrosdoterceiroano
+	livrosdoterceiroano@gmail.com
 
 senha:
 	muitacoisa
